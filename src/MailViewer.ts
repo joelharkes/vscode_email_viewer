@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import { getNonce } from './util';
 import { ParsedMail, simpleParser } from 'mailparser';
-import { writeFileSync, writeSync } from 'fs';
-import { dirname, join } from 'path';
 
 /**
  * Provider for cat scratch editors.
@@ -148,16 +146,17 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 	/**
 	 * Add a new scratch to the current document.
 	 */
-	private downloadAttachment(document: vscode.TextDocument, mail: ParsedMail, index: number) {
+	private async downloadAttachment(document: vscode.TextDocument, mail: ParsedMail, index: number) {
 		const attachement = mail.attachments[index];
-		const directory = dirname(document.fileName);
 		const filename = attachement.filename || 'unkown.txt';
-		const filePath = join(directory, filename);
-		// add attachement as file in same directory
-		// TODO find proper way to add file, this probably does not work for remote editors.
-		writeFileSync(filePath, attachement.content);
-		// vscode.workspace.applyEdit(edit);
-		vscode.window.showInformationMessage(`Attachment saved as ${filePath}`);
+		const emlPath = vscode.Uri.file(document.fileName);
+		const attachmentPath = vscode.Uri.joinPath(emlPath, '../'+filename);
+		
+		await vscode.workspace.fs.writeFile(attachmentPath, attachement.content);
+		vscode.window.showInformationMessage(`Attachment saved as ${attachmentPath.path}`);
+		// now open file with Open with... action
+		vscode.commands.executeCommand('vscode.openWith', attachmentPath, 'default');
+
 	}
 	
 }
