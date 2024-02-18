@@ -2,7 +2,7 @@
   "name": "emlviewer",
   "displayName": "EmlViewer",
   "description": "A viewer for EML mail files",
-  "version": "0.0.1",
+  "version": "__VERSION__",
   "engines": {
     "vscode": "^1.86.0"
   },

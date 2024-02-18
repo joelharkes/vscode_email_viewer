@@ -1,0 +1,43 @@
+name: Publisch Extension
+on:
+  release:
+    types:
+      - published
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Set package version
+        run: sed -i 's/__VERSION__/${{ github.ref }}/' package.json
+      - name: Package Extension
+        id: packageExtension
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          pat: stub
+          dryRun: true
+      - name: Publish to Visual Studio Marketplace
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          pat: ${{ secrets.VS_MARKETPLACE_TOKEN }}
+          registryUrl: https://marketplace.visualstudio.com
+          path: ${{ steps.packageExtension.outputs.vsixPath }}
+        # - name: Publish to Open VSX Registry
+        #   uses: HaaLeo/publish-vscode-extension@v1
+        #   with:
+        #     pat: ${{ secrets.OPEN_VSX_TOKEN }}
+        #     path: ${{ steps.packageExtension.outputs.vsixPath }}
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ steps.packageExtension.outputs.vsixPath }}
+          asset_name: EmailViewer-${{ github.ref }}.vsix
+          tag: ${{ github.ref }}
+          overwrite: true
+          # body: "This is my release text"
