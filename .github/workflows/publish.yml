@@ -13,7 +13,7 @@ jobs:
           node-version: 20
       - run: npm ci
       - name: Set package version
-        run: sed -i 's/__VERSION__/${{ github.ref }}/' package.json
+        run: "sed -i 's/version\": \"0.0.1/version\": \"${{ github.ref }}/' package.json"
       - name: Package Extension
         id: packageExtension
         uses: HaaLeo/publish-vscode-extension@v1
