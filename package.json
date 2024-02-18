@@ -1,13 +1,20 @@
 {
   "name": "emlviewer",
-  "displayName": "EmlViewer",
+  "displayName": "Email viewer (.eml files)",
   "description": "A viewer for EML mail files",
   "version": "__VERSION__",
+  "publisher": "joel-harkes",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "pricing": "Free",
   "engines": {
     "vscode": "^1.86.0"
   },
   "categories": [
-    "Other"
+    "Programming Languages", "Other"
+  ],
+  "keywords": [
+    "eml", "email", "viewer", ".eml"
   ],
   "activationEvents": [],
   "main": "./out/extension.js",
