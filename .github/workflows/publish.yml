@@ -37,7 +37,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ steps.packageExtension.outputs.vsixPath }}
-          asset_name: EmailViewer-${{ github.ref }}.vsix
-          tag: ${{ github.ref }}
+          asset_name: EmailViewer-${{ github.ref_name }}.vsix
+          tag: ${{ github.ref_name }}
           overwrite: true
           # body: "This is my release text"
