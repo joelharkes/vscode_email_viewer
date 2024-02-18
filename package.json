@@ -16,6 +16,10 @@
   "keywords": [
     "eml", "email", "viewer", ".eml"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joelharkes/vscode_email_viewer"
+  },
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
