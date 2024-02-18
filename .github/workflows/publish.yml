@@ -3,6 +3,8 @@ on:
   release:
     types:
       - published
+permissions: 
+  contents: write # For adding vsix file to release.
 jobs:
   deploy:
     runs-on: ubuntu-latest
