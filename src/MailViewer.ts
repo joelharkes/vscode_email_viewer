@@ -124,9 +124,10 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 
 		const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(async e => {
 			if (e.document.uri.toString() === document.uri.toString()) {
+				// Check synchronously before await to avoid race conditions
+				const isSelfEdit = selfEditVersions.delete(e.document.version);
 				mail = await parseEmail(document.getText());
-				// Skip webview update for self-initiated edits to avoid flicker
-				if (selfEditVersions.delete(e.document.version)) {
+				if (isSelfEdit) {
 					return;
 				}
 				updateWebview();

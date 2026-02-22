@@ -171,71 +171,77 @@
 		// Render HTML body in a sandboxed iframe with contentEditable
 		const mailHtmlElement = document.getElementById('mail-html');
 		if (mailHtmlElement) {
-			mailHtmlElement.innerHTML = '';
-			if (mail.html) {
-				// Toolbar with hint and Edit HTML Source button
-				const toolbar = document.createElement('div');
-				toolbar.className = 'html-body-toolbar';
-				const hint = document.createElement('span');
-				hint.className = 'html-body-hint';
-				hint.textContent = 'Inline editing may alter formatting. Use Edit HTML Source for precise control.';
-				toolbar.appendChild(hint);
-				const editSourceBtn = document.createElement('button');
-				editSourceBtn.className = 'edit-source-btn';
-				editSourceBtn.textContent = 'Edit HTML Source';
-				editSourceBtn.addEventListener('click', () => {
-					vscode.postMessage({ type: 'openHtmlSource' });
-				});
-				toolbar.appendChild(editSourceBtn);
-				mailHtmlElement.appendChild(toolbar);
-
-				const iframe = document.createElement('iframe');
-				iframe.sandbox = 'allow-same-origin';
-				iframe.srcdoc = mail.html;
-				iframe.style.width = '100%';
-				iframe.style.border = 'none';
-				iframe.style.overflow = 'hidden';
-				iframe.style.minHeight = '200px';
-				mailHtmlElement.appendChild(iframe);
-
-				// After load, enable contentEditable and wire up change detection
-				iframe.addEventListener('load', () => {
-					const doc = iframe.contentDocument;
-					if (!doc || !doc.body) { return; }
-
-					doc.body.contentEditable = 'true';
-					doc.body.style.outline = 'none';
-
-					// Auto-resize iframe to fit content
-					const resize = () => {
-						const style = /** @type {Window} */ (doc.defaultView).getComputedStyle(doc.body);
-						const margin = (parseInt(style.marginTop, 10) || 0) + (parseInt(style.marginBottom, 10) || 0);
-						iframe.style.height = (doc.body.offsetHeight + margin) + 'px';
-					};
-					resize();
-					const observer = new MutationObserver(resize);
-					observer.observe(doc.body, { childList: true, subtree: true, attributes: true, characterData: true });
-					new ResizeObserver(resize).observe(doc.body);
-
-					// Debounced input → send changes back to extension
-					/** @type {ReturnType<typeof setTimeout> | undefined} */
-					let debounceTimer;
-					doc.body.addEventListener('input', () => {
-						clearTimeout(debounceTimer);
-						debounceTimer = setTimeout(() => {
-							// Clone to strip editing attributes without touching the live DOM
-							const clone = doc.documentElement.cloneNode(true);
-							const cloneBody = /** @type {HTMLElement} */ (/** @type {HTMLElement} */ (clone).querySelector('body'));
-							cloneBody.removeAttribute('contenteditable');
-							cloneBody.removeAttribute('style');
-							const html = /** @type {HTMLElement} */ (clone).outerHTML;
-							vscode.postMessage({
-								type: 'editHtmlBody',
-								newHtml: html,
-							});
-						}, 500);
+			// Skip recreation if user is focused inside the existing iframe
+			const existingIframe = mailHtmlElement.querySelector('iframe');
+			if (existingIframe && existingIframe.contentDocument && existingIframe.contentDocument.hasFocus()) {
+				// Content was already synced via editHtmlBody; don't destroy the iframe
+			} else {
+				mailHtmlElement.innerHTML = '';
+				if (mail.html) {
+					// Toolbar with hint and Edit HTML Source button
+					const toolbar = document.createElement('div');
+					toolbar.className = 'html-body-toolbar';
+					const hint = document.createElement('span');
+					hint.className = 'html-body-hint';
+					hint.textContent = 'Inline editing may alter formatting. Use Edit HTML Source for precise control.';
+					toolbar.appendChild(hint);
+					const editSourceBtn = document.createElement('button');
+					editSourceBtn.className = 'edit-source-btn';
+					editSourceBtn.textContent = 'Edit HTML Source';
+					editSourceBtn.addEventListener('click', () => {
+						vscode.postMessage({ type: 'openHtmlSource' });
 					});
-				});
+					toolbar.appendChild(editSourceBtn);
+					mailHtmlElement.appendChild(toolbar);
+
+					const iframe = document.createElement('iframe');
+					iframe.sandbox = 'allow-same-origin';
+					iframe.srcdoc = mail.html;
+					iframe.style.width = '100%';
+					iframe.style.border = 'none';
+					iframe.style.overflow = 'hidden';
+					iframe.style.minHeight = '200px';
+					mailHtmlElement.appendChild(iframe);
+
+					// After load, enable contentEditable and wire up change detection
+					iframe.addEventListener('load', () => {
+						const doc = iframe.contentDocument;
+						if (!doc || !doc.body) { return; }
+
+						doc.body.contentEditable = 'true';
+						doc.body.style.outline = 'none';
+
+						// Auto-resize iframe to fit content
+						const resize = () => {
+							const style = /** @type {Window} */ (doc.defaultView).getComputedStyle(doc.body);
+							const margin = (parseInt(style.marginTop, 10) || 0) + (parseInt(style.marginBottom, 10) || 0);
+							iframe.style.height = (doc.body.offsetHeight + margin) + 'px';
+						};
+						resize();
+						const observer = new MutationObserver(resize);
+						observer.observe(doc.body, { childList: true, subtree: true, attributes: true, characterData: true });
+						new ResizeObserver(resize).observe(doc.body);
+
+						// Debounced input → send changes back to extension
+						/** @type {ReturnType<typeof setTimeout> | undefined} */
+						let debounceTimer;
+						doc.body.addEventListener('input', () => {
+							clearTimeout(debounceTimer);
+							debounceTimer = setTimeout(() => {
+								// Clone to strip editing attributes without touching the live DOM
+								const clone = doc.documentElement.cloneNode(true);
+								const cloneBody = /** @type {HTMLElement} */ (/** @type {HTMLElement} */ (clone).querySelector('body'));
+								cloneBody.removeAttribute('contenteditable');
+								cloneBody.removeAttribute('style');
+								const html = /** @type {HTMLElement} */ (clone).outerHTML;
+								vscode.postMessage({
+									type: 'editHtmlBody',
+									newHtml: html,
+								});
+							}, 500);
+						});
+					});
+				}
 			}
 		}
 
