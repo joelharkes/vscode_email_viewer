@@ -72,7 +72,7 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 		// Receive message from the webview.
 		webviewPanel.webview.onDidReceiveMessage(e => {
 			switch (e.type) {
-				case 'downloadAttachement':
+				case 'downloadAttachment':
 					this.downloadAttachment(document, mail, e.index);
 					return;
 			}

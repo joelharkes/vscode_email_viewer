@@ -40,7 +40,7 @@
 					a.onclick = (e) => {
 						e.preventDefault();
 						vscode.postMessage({
-							type: 'downloadAttachement',
+							type: 'downloadAttachment',
 							index: attachmentIndex
 						});
 					};
