@@ -97,3 +97,46 @@
 	color: var(--vscode-textLink-activeForeground);
 	border-color: var(--vscode-textLink-foreground);
 }
+
+/* === Attachment Cards === */
+.attachment-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.attachment-card {
+	width: 180px;
+	padding: 10px 12px;
+	border: 1px solid var(--vscode-panel-border, var(--vscode-editorGroup-border));
+	border-radius: 4px;
+	cursor: pointer;
+	transition: background-color 0.1s, border-color 0.1s;
+}
+
+.attachment-card:hover {
+	background-color: var(--vscode-list-hoverBackground);
+	border-color: var(--vscode-focusBorder);
+}
+
+.attachment-card-name {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--vscode-foreground);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--vscode-font-family);
+}
+
+.attachment-card-meta {
+	font-size: 11px;
+	color: var(--vscode-descriptionForeground);
+	margin-top: 4px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--vscode-font-family);
+}
+

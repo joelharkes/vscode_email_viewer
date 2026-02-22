@@ -246,9 +246,7 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 				<h1 id="mail-subject"></h1>
 				<table class="header-table"><tbody id="header-table-body"></tbody></table>
 				<button class="add-header-btn" id="add-header-btn">+ Add Header</button>
-				attachment:
-				<div id="mail-attachment">
-				</div>
+				<div id="mail-attachment"></div>
 				<h2>HTML body</h2>
 				<div id="mail-html">
 				</div>

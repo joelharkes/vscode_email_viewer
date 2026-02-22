@@ -88,6 +88,39 @@
 	}
 
 	/**
+	 * Format bytes into a human-readable size string.
+	 * @param {number} bytes
+	 * @returns {string}
+	 */
+	function formatFileSize(bytes) {
+		if (bytes === 0) { return '0 B'; }
+		const units = ['B', 'KB', 'MB', 'GB'];
+		const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+		const size = bytes / Math.pow(1024, i);
+		return `${i === 0 ? size : size.toFixed(1)} ${units[i]}`;
+	}
+
+	/**
+	 * Get the byte length of an attachment's content.
+	 * @param {any} content
+	 * @returns {number}
+	 */
+	function getContentSize(content) {
+		if (!content) { return 0; }
+		if (content.byteLength !== undefined) { return content.byteLength; }
+		if (typeof content === 'string') { return content.length; }
+		return 0;
+	}
+
+	/**
+	 * Trigger a download for the given attachment index.
+	 * @param {number} index
+	 */
+	function downloadAttachment(index) {
+		vscode.postMessage({ type: 'downloadAttachment', index });
+	}
+
+	/**
 	 * Render the document in the webview.
 	 */
 	function updateContent(/** @type {import("postal-mime").Email & { textAsHtml?: string }} */ mail) {
@@ -110,28 +143,34 @@
 			}
 		}
 
-		const attachmentElement = document.getElementById('mail-attachment');
-		if (attachmentElement) {
-			attachmentElement.innerHTML = '';
+		// Attachments as cards
+		const attachmentEl = document.getElementById('mail-attachment');
+		if (attachmentEl) {
+			attachmentEl.innerHTML = '';
 			if (mail.attachments && mail.attachments.length > 0) {
-				const ul = document.createElement('ul');
-				attachmentElement.appendChild(ul);
-				for (let attachmentIndex = 0; attachmentIndex < mail.attachments.length; attachmentIndex++) {
-					const attachment = mail.attachments[attachmentIndex];
-					const li = document.createElement('li');
-					ul.appendChild(li);
-					const a = document.createElement('a');
-					li.appendChild(a);
-					a.onclick = (e) => {
-						e.preventDefault();
-						vscode.postMessage({
-							type: 'downloadAttachment',
-							index: attachmentIndex
-						});
-					};
-					a.href = '#';
-					a.innerText = attachment.filename || 'unknown.txt';
+				const container = document.createElement('div');
+				container.className = 'attachment-cards';
+				for (let i = 0; i < mail.attachments.length; i++) {
+					const att = mail.attachments[i];
+					const card = document.createElement('div');
+					card.className = 'attachment-card';
+					card.addEventListener('click', () => downloadAttachment(i));
+
+					const name = document.createElement('div');
+					name.className = 'attachment-card-name';
+					name.textContent = att.filename || 'unknown.txt';
+					card.appendChild(name);
+
+					const meta = document.createElement('div');
+					meta.className = 'attachment-card-meta';
+					const size = formatFileSize(getContentSize(att.content));
+					const type = att.mimeType || 'unknown';
+					meta.textContent = `${size} \u00B7 ${type}`;
+					card.appendChild(meta);
+
+					container.appendChild(card);
 				}
+				attachmentEl.appendChild(container);
 			}
 		}
 
