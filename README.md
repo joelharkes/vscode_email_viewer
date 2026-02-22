@@ -2,6 +2,8 @@
 
 View and edit `.eml` email files directly in VS Code — headers, HTML body, text body, and attachments — all in a single structured editor.
 
+![Email Viewer screenshot](images/screenshot_vscode.png)
+
 ## What are `.eml` files?
 
 `.eml` is the standard format for email messages ([RFC 5322](https://datatracker.ietf.org/doc/html/rfc5322)). Every email client can export and import them. They contain the full email: headers, body (plain text and/or HTML), inline images, and file attachments — all encoded in a single text file using MIME.
@@ -21,8 +23,6 @@ Common uses for `.eml` files:
 - **Attachments** — card-based layout showing filename, size, and MIME type; click to download
 - **Theme support** — adapts to your VS Code theme (light, dark, high contrast)
 - **Standards compliant** — preserves MIME structure, encodings, and boundaries on save
-
-![Email Viewer screenshot](images/screenshot_vscode.png)
 
 ## Getting Started
 
