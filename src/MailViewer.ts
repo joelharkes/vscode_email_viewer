@@ -37,7 +37,7 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 		webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
 
-		const mail = await parseEmail(document.getText());
+		let mail = await parseEmail(document.getText());
 		function updateWebview() {
 			webviewPanel.webview.postMessage({
 				type: 'update',
@@ -57,8 +57,9 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 		// Remember that a single text document can also be shared between multiple custom
 		// editors (this happens for example when you split a custom editor)
 
-		const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
+		const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(async e => {
 			if (e.document.uri.toString() === document.uri.toString()) {
+				mail = await parseEmail(document.getText());
 				updateWebview();
 			}
 		});
