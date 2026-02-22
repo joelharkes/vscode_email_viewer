@@ -194,6 +194,7 @@
 				iframe.srcdoc = mail.html;
 				iframe.style.width = '100%';
 				iframe.style.border = 'none';
+				iframe.style.overflow = 'hidden';
 				iframe.style.minHeight = '200px';
 				mailHtmlElement.appendChild(iframe);
 
@@ -207,11 +208,14 @@
 
 					// Auto-resize iframe to fit content
 					const resize = () => {
-						iframe.style.height = doc.body.scrollHeight + 'px';
+						const style = /** @type {Window} */ (doc.defaultView).getComputedStyle(doc.body);
+						const margin = (parseInt(style.marginTop, 10) || 0) + (parseInt(style.marginBottom, 10) || 0);
+						iframe.style.height = (doc.body.offsetHeight + margin) + 'px';
 					};
 					resize();
-					const observer = new ResizeObserver(resize);
-					observer.observe(doc.body);
+					const observer = new MutationObserver(resize);
+					observer.observe(doc.body, { childList: true, subtree: true, attributes: true, characterData: true });
+					new ResizeObserver(resize).observe(doc.body);
 
 					// Debounced input → send changes back to extension
 					/** @type {ReturnType<typeof setTimeout> | undefined} */
@@ -219,12 +223,12 @@
 					doc.body.addEventListener('input', () => {
 						clearTimeout(debounceTimer);
 						debounceTimer = setTimeout(() => {
-							// Temporarily remove attributes we added so they don't leak into the saved HTML
-							doc.body.removeAttribute('contenteditable');
-							doc.body.removeAttribute('style');
-							const html = doc.documentElement.outerHTML;
-							doc.body.contentEditable = 'true';
-							doc.body.style.outline = 'none';
+							// Clone to strip editing attributes without touching the live DOM
+							const clone = doc.documentElement.cloneNode(true);
+							const cloneBody = /** @type {HTMLElement} */ (/** @type {HTMLElement} */ (clone).querySelector('body'));
+							cloneBody.removeAttribute('contenteditable');
+							cloneBody.removeAttribute('style');
+							const html = /** @type {HTMLElement} */ (clone).outerHTML;
 							vscode.postMessage({
 								type: 'editHtmlBody',
 								newHtml: html,
