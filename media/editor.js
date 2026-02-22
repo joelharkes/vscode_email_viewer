@@ -9,55 +9,82 @@
 	// @ts-ignore
 	const vscode = acquireVsCodeApi();
 
-
-
-
 	const errorContainer = document.createElement('div');
 	document.body.appendChild(errorContainer);
-	errorContainer.className = 'error'
-	errorContainer.style.display = 'none'
+	errorContainer.className = 'error';
+	errorContainer.style.display = 'none';
 
 	/**
-	 * Create a table row with a label and text value, using textContent for safety.
-	 * @param {string} label
+	 * Create an editable table row for a header.
+	 * @param {number} index
+	 * @param {string} key
 	 * @param {string} value
 	 * @returns {HTMLTableRowElement}
 	 */
-	function createHeaderRow(label, value) {
+	function createEditableHeaderRow(index, key, value) {
 		const tr = document.createElement('tr');
+		tr.dataset.headerIndex = String(index);
+
+		// Editable key cell
 		const th = document.createElement('th');
-		th.textContent = label;
+		th.textContent = key;
+		th.contentEditable = 'true';
+		th.spellcheck = false;
+		th.addEventListener('blur', () => {
+			const newKey = (th.textContent || '').trim();
+			if (newKey && newKey !== key) {
+				vscode.postMessage({
+					type: 'editHeader',
+					index: index,
+					newKey: newKey,
+					newValue: (td.textContent || '').trim(),
+				});
+			} else if (!newKey) {
+				th.textContent = key; // revert empty key
+			}
+		});
+		th.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') { e.preventDefault(); th.blur(); }
+			if (e.key === 'Escape') { th.textContent = key; th.blur(); }
+		});
+
+		// Editable value cell
 		const td = document.createElement('td');
 		td.textContent = value;
+		td.contentEditable = 'true';
+		td.spellcheck = false;
+		td.addEventListener('blur', () => {
+			const newValue = (td.textContent || '');
+			if (newValue !== value) {
+				vscode.postMessage({
+					type: 'editHeader',
+					index: index,
+					newKey: (th.textContent || '').trim(),
+					newValue: newValue,
+				});
+			}
+		});
+		td.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') { e.preventDefault(); td.blur(); }
+			if (e.key === 'Escape') { td.textContent = value; td.blur(); }
+		});
+
+		// Delete button cell
+		const tdAction = document.createElement('td');
+		tdAction.className = 'header-action-cell';
+		const deleteBtn = document.createElement('button');
+		deleteBtn.className = 'header-delete-btn';
+		deleteBtn.textContent = '\u00D7';
+		deleteBtn.title = 'Delete header';
+		deleteBtn.addEventListener('click', () => {
+			vscode.postMessage({ type: 'deleteHeader', index: index });
+		});
+		tdAction.appendChild(deleteBtn);
+
 		tr.appendChild(th);
 		tr.appendChild(td);
+		tr.appendChild(tdAction);
 		return tr;
-	}
-
-	/**
-	 * Format an ISO/RFC 2822 date string into a human-readable locale format.
-	 * @param {string} dateStr
-	 * @returns {string}
-	 */
-	function formatDate(dateStr) {
-		try {
-			const date = new Date(dateStr);
-			if (isNaN(date.getTime())) {
-				return dateStr;
-			}
-			return date.toLocaleString(undefined, {
-				weekday: 'short',
-				year: 'numeric',
-				month: 'short',
-				day: 'numeric',
-				hour: '2-digit',
-				minute: '2-digit',
-				second: '2-digit',
-				timeZoneName: 'short',
-			});
-		} catch {
-			return dateStr;
-		}
 	}
 
 	/**
@@ -70,51 +97,26 @@
 			subjectElement.textContent = mail.subject || '(no subject)';
 		}
 
-		// Build standard header rows, skipping empty values
+		// Build editable header table from all headers
 		const headerTableBody = document.getElementById('header-table-body');
 		if (headerTableBody) {
 			headerTableBody.innerHTML = '';
-			/** @type {Array<{label: string, value: string}>} */
-			const standardHeaders = [
-				{ label: 'From',     value: mail.from ? formatAddress(mail.from) : '' },
-				{ label: 'To',       value: formatAddresses(mail.to) },
-				{ label: 'Date',     value: mail.date ? formatDate(mail.date) : '' },
-				{ label: 'CC',       value: formatAddresses(mail.cc) },
-				{ label: 'BCC',      value: formatAddresses(mail.bcc) },
-				{ label: 'Reply-To', value: formatAddresses(mail.replyTo) },
-				{ label: 'Sender',   value: mail.sender ? formatAddress(mail.sender) : '' },
-			];
-			for (const header of standardHeaders) {
-				if (header.value) {
-					headerTableBody.appendChild(createHeaderRow(header.label, header.value));
-				}
-			}
-		}
-
-		// Build raw headers table
-		const rawHeadersBody = document.getElementById('raw-headers-table-body');
-		if (rawHeadersBody) {
-			rawHeadersBody.innerHTML = '';
 			if (mail.headers && mail.headers.length > 0) {
-				for (const header of mail.headers) {
-					rawHeadersBody.appendChild(createHeaderRow(header.key, header.value));
+				for (let i = 0; i < mail.headers.length; i++) {
+					headerTableBody.appendChild(
+						createEditableHeaderRow(i, mail.headers[i].key, mail.headers[i].value)
+					);
 				}
 			}
-		}
-
-		// Show/hide the toggle button based on whether there are raw headers
-		const toggleButton = document.getElementById('raw-headers-toggle');
-		if (toggleButton) {
-			toggleButton.style.display = (mail.headers && mail.headers.length > 0) ? '' : 'none';
 		}
 
 		const attachmentElement = document.getElementById('mail-attachment');
-		if(attachmentElement){
+		if (attachmentElement) {
 			attachmentElement.innerHTML = '';
-			if(mail.attachments && mail.attachments.length > 0){
+			if (mail.attachments && mail.attachments.length > 0) {
 				const ul = document.createElement('ul');
 				attachmentElement.appendChild(ul);
-				for(let attachmentIndex = 0; attachmentIndex < mail.attachments.length; attachmentIndex++){
+				for (let attachmentIndex = 0; attachmentIndex < mail.attachments.length; attachmentIndex++) {
 					const attachment = mail.attachments[attachmentIndex];
 					const li = document.createElement('li');
 					ul.appendChild(li);
@@ -153,67 +155,24 @@
 		if (mailTextElement) {
 			mailTextElement.innerHTML = mail.textAsHtml || '';
 		}
-
 	}
 
-	/**
-	 * Format a single postal-mime Address (Mailbox or group).
-	 * @param {import("postal-mime").Address} address
-	 * @returns {string}
-	 */
-	function formatAddress(address) {
-		if ('group' in address && address.group) {
-			return `${address.name}: ${address.group.map(formatMailbox).join(', ')};`;
-		}
-		return formatMailbox(/** @type {import("postal-mime").Mailbox} */ (address));
-	}
-
-	/**
-	 * @param {import("postal-mime").Mailbox} mailbox
-	 * @returns {string}
-	 */
-	function formatMailbox(mailbox) {
-		if (mailbox.name && mailbox.address) {
-			return `${mailbox.name} <${mailbox.address}>`;
-		}
-		return mailbox.address || mailbox.name || '';
-	}
-
-	/**
-	 * Format an array of addresses into a comma-separated string.
-	 * @param {import("postal-mime").Address[] | undefined} addresses
-	 * @returns {string}
-	 */
-	function formatAddresses(addresses) {
-		if (!addresses || addresses.length === 0) { return ''; }
-		return addresses.map(formatAddress).join(', ');
-	}
-
-	// Wire up the raw headers toggle
-	const rawHeadersToggle = document.getElementById('raw-headers-toggle');
-	const rawHeadersContent = document.getElementById('raw-headers-content');
-	if (rawHeadersToggle && rawHeadersContent) {
-		rawHeadersToggle.addEventListener('click', () => {
-			const isExpanded = rawHeadersToggle.classList.toggle('expanded');
-			rawHeadersContent.classList.toggle('visible', isExpanded);
-			rawHeadersToggle.textContent = isExpanded ? 'Hide all headers' : 'Show all headers';
+	// Wire up the "Add Header" button
+	const addHeaderBtn = document.getElementById('add-header-btn');
+	if (addHeaderBtn) {
+		addHeaderBtn.addEventListener('click', () => {
+			vscode.postMessage({ type: 'addHeader' });
 		});
 	}
 
 	// Handle messages sent from the extension to the webview
 	window.addEventListener('message', event => {
-		const message = event.data; // The json data that the extension sent
+		const message = event.data;
 		switch (message.type) {
 			case 'update':
 				const text = message.text;
-
-				// Update our webview's content
 				updateContent(text);
-
-				// Then persist state information.
-				// This state is returned in the call to `vscode.getState` below when a webview is reloaded.
 				vscode.setState({ text });
-
 				return;
 		}
 	});

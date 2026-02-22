@@ -2,7 +2,7 @@
 .header-table {
 	width: 100%;
 	border-collapse: collapse;
-	margin-bottom: 16px;
+	margin-bottom: 8px;
 	font-size: 13px;
 	font-family: var(--vscode-font-family);
 }
@@ -28,70 +28,70 @@
 	word-break: break-word;
 }
 
-/* === Raw Headers Collapsible Section === */
-.raw-headers-toggle {
-	cursor: pointer;
-	user-select: none;
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	padding: 6px 0;
-	font-size: 13px;
-	font-weight: 600;
-	color: var(--vscode-textLink-foreground);
+/* === Editable Header Cells === */
+.header-table th[contenteditable="true"],
+.header-table td[contenteditable="true"] {
+	cursor: text;
+	outline: none;
+}
+
+.header-table th[contenteditable="true"]:focus,
+.header-table td[contenteditable="true"]:focus {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: -1px;
+	background-color: var(--vscode-input-background);
+}
+
+.header-table th[contenteditable="true"]:hover,
+.header-table td[contenteditable="true"]:hover {
+	background-color: var(--vscode-list-hoverBackground);
+}
+
+/* === Action Column (Delete Button) === */
+.header-action-cell {
+	width: 28px;
+	text-align: center;
+	padding: 0 !important;
+}
+
+.header-delete-btn {
 	background: none;
 	border: none;
+	color: var(--vscode-descriptionForeground);
+	cursor: pointer;
+	font-size: 16px;
+	line-height: 1;
+	padding: 2px 6px;
+	opacity: 0;
+	transition: opacity 0.1s;
+}
+
+.header-table tr:hover .header-delete-btn {
+	opacity: 0.6;
+}
+
+.header-delete-btn:hover {
+	opacity: 1 !important;
+	color: var(--vscode-errorForeground);
+}
+
+/* === Add Header Button === */
+.add-header-btn {
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	margin-bottom: 16px;
+	font-size: 12px;
+	color: var(--vscode-textLink-foreground);
+	background: none;
+	border: 1px dashed var(--vscode-panel-border);
+	border-radius: 2px;
 	font-family: var(--vscode-font-family);
 }
 
-.raw-headers-toggle:hover {
+.add-header-btn:hover {
 	color: var(--vscode-textLink-activeForeground);
-}
-
-.raw-headers-toggle::before {
-	content: '\25B6';
-	font-size: 10px;
-	transition: transform 0.15s ease;
-	display: inline-block;
-}
-
-.raw-headers-toggle.expanded::before {
-	transform: rotate(90deg);
-}
-
-.raw-headers-content {
-	display: none;
-	margin-top: 4px;
-	margin-bottom: 16px;
-}
-
-.raw-headers-content.visible {
-	display: block;
-}
-
-.raw-headers-table {
-	width: 100%;
-	border-collapse: collapse;
-	font-size: 12px;
-	font-family: var(--vscode-editor-font-family, monospace);
-}
-
-.raw-headers-table th,
-.raw-headers-table td {
-	border: 1px solid var(--vscode-panel-border, var(--vscode-editorGroup-border));
-	padding: 3px 6px;
-	text-align: left;
-	vertical-align: top;
-}
-
-.raw-headers-table th {
-	width: 160px;
-	white-space: nowrap;
-	color: var(--vscode-descriptionForeground);
-	font-weight: normal;
-}
-
-.raw-headers-table td {
-	color: var(--vscode-foreground);
-	word-break: break-all;
+	border-color: var(--vscode-textLink-foreground);
 }
