@@ -9,18 +9,21 @@
 
 .header-table th,
 .header-table td {
-	border: 1px solid var(--vscode-panel-border, var(--vscode-editorGroup-border));
+	border: none;
 	padding: 4px 8px;
 	text-align: left;
 	vertical-align: top;
+}
+
+.header-table tr:nth-child(odd) {
+	background-color: color-mix(in srgb, var(--vscode-foreground) 5%, transparent);
 }
 
 .header-table th {
 	width: 100px;
 	white-space: nowrap;
 	font-weight: 600;
-	color: var(--vscode-foreground);
-	background-color: var(--vscode-editor-background);
+	color: var(--vscode-descriptionForeground);
 }
 
 .header-table td {
@@ -42,9 +45,8 @@
 	background-color: var(--vscode-input-background);
 }
 
-.header-table th[contenteditable="true"]:hover,
-.header-table td[contenteditable="true"]:hover {
-	background-color: var(--vscode-list-hoverBackground);
+.header-table tr:hover {
+	background-color: var(--vscode-list-hoverBackground) !important;
 }
 
 /* === Action Column (Delete Button) === */
