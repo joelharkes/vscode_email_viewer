@@ -63,16 +63,25 @@
 			}
 		}
 
-		const htmlMap = {
-			'mail-html': mail.html || '',
-			'mail-text': mail.textAsHtml || '',
+		// Render HTML body in a sandboxed iframe to prevent XSS
+		const mailHtmlElement = document.getElementById('mail-html');
+		if (mailHtmlElement) {
+			mailHtmlElement.innerHTML = '';
+			if (mail.html) {
+				const iframe = document.createElement('iframe');
+				iframe.sandbox = '';
+				iframe.srcdoc = mail.html;
+				iframe.style.width = '100%';
+				iframe.style.border = 'none';
+				iframe.style.minHeight = '200px';
+				mailHtmlElement.appendChild(iframe);
+			}
 		}
 
-		for(const id in htmlMap){
-			const element = document.getElementById(id);
-			if(element){
-				element.innerHTML = htmlMap[id];
-			}
+		// Text body is safe (pre-escaped by textToHtml on the extension side)
+		const mailTextElement = document.getElementById('mail-text');
+		if (mailTextElement) {
+			mailTextElement.innerHTML = mail.textAsHtml || '';
 		}
 
 	}
