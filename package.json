@@ -61,7 +61,6 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@types/mailparser": "^3.4.6",
-    "mailparser": "^3.9.3"
+    "postal-mime": "^2.4"
   }
 }

@@ -1,19 +1,13 @@
 import * as vscode from 'vscode';
 import { getNonce } from './util';
-import { ParsedMail, simpleParser } from 'mailparser';
 
-/**
- * Provider for cat scratch editors.
- * 
- * Cat scratch editors are used for `.cscratch` files, which are just json files.
- * To get started, run this extension and open an empty `.cscratch` file in VS Code.
- * 
- * This provider demonstrates:
- * 
- * - Setting up the initial webview for a custom editor.
- * - Loading scripts and styles in a custom editor.
- * - Synchronizing changes between a text document and a custom editor.
- */
+async function parseEmail(raw: string) {
+	const PostalMime = (await import('postal-mime')).default;
+	return PostalMime.parse(raw);
+}
+
+type Email = Awaited<ReturnType<typeof parseEmail>>;
+
 export class MailViewer implements vscode.CustomTextEditorProvider {
 
 	public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -24,17 +18,12 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 
 	private static readonly viewType = 'emlviewer.eml';
 
-
-	private static readonly scratchCharacters = ['😸', '😹', '😺', '😻', '😼', '😽', '😾', '🙀', '😿', '🐱'];
-
 	constructor(
 		private readonly context: vscode.ExtensionContext
 	) { }
 
 	/**
 	 * Called when our custom editor is opened.
-	 * 
-	 * 
 	 */
 	public async resolveCustomTextEditor(
 		document: vscode.TextDocument,
@@ -48,11 +37,15 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 		webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
 
-		const mail = await simpleParser(document.getText())
+		const mail = await parseEmail(document.getText());
 		function updateWebview() {
 			webviewPanel.webview.postMessage({
 				type: 'update',
-				text: mail,
+				text: {
+					...mail,
+					html: inlineCidImages(mail),
+					textAsHtml: textToHtml(mail.text),
+				},
 			});
 		}
 
@@ -60,7 +53,7 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 		//
 		// The text document acts as our model, so we have to sync change in the document to our
 		// editor and sync changes in the editor back to the document.
-		// 
+		//
 		// Remember that a single text document can also be shared between multiple custom
 		// editors (this happens for example when you split a custom editor)
 
@@ -95,15 +88,6 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(
 			this.context.extensionUri, 'media', 'editor.js'));
 
-		// const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(
-			// this.context.extensionUri, 'media', 'reset.css'));
-
-		// const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(
-			// this.context.extensionUri, 'media', 'vscode.css'));
-
-		// const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(
-			// this.context.extensionUri, 'media', 'catScratch.css'));
-
 		// Use a nonce to whitelist which scripts can be run
 		const nonce = getNonce();
 
@@ -117,7 +101,7 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 				Use a content security policy to only allow loading images from https or from our extension directory,
 				and only allow scripts that have a specific nonce.
 				-->
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
 
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -143,20 +127,55 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 			</html>`;
 	}
 
-	/**
-	 * Add a new scratch to the current document.
-	 */
-	private async downloadAttachment(document: vscode.TextDocument, mail: ParsedMail, index: number) {
-		const attachement = mail.attachments[index];
-		const filename = attachement.filename || 'unkown.txt';
+	private async downloadAttachment(document: vscode.TextDocument, mail: Email, index: number) {
+		const attachment = mail.attachments[index];
+		const filename = attachment.filename || 'unknown.txt';
 		const emlPath = vscode.Uri.file(document.fileName);
-		const attachmentPath = vscode.Uri.joinPath(emlPath, '../'+filename);
-		
-		await vscode.workspace.fs.writeFile(attachmentPath, attachement.content);
-		vscode.window.showInformationMessage(`Attachment saved as ${attachmentPath.path}`);
-		// now open file with Open with... action
-		vscode.commands.executeCommand('vscode.openWith', attachmentPath, 'default');
+		const attachmentPath = vscode.Uri.joinPath(emlPath, '../' + filename);
 
+		const content = toUint8Array(attachment.content);
+		await vscode.workspace.fs.writeFile(attachmentPath, content);
+		vscode.window.showInformationMessage(`Attachment saved as ${attachmentPath.path}`);
+		vscode.commands.executeCommand('vscode.openWith', attachmentPath, 'default');
 	}
-	
+}
+
+function textToHtml(text: string | undefined): string {
+	if (!text) { return ''; }
+	const escaped = text
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
+	return '<p>' + escaped
+		.replace(/\r?\n/g, '\n')
+		.trim()
+		.replace(/\n\n+/g, '</p><p>')
+		.replace(/\n/g, '<br/>') + '</p>';
+}
+
+function inlineCidImages(mail: Email): string {
+	let html = mail.html || '';
+	for (const attachment of mail.attachments) {
+		if (!attachment.contentId) { continue; }
+		const cid = attachment.contentId.replace(/^<|>$/g, '');
+		const base64 = bufferToBase64(attachment.content);
+		html = html.replace(
+			new RegExp(`cid:${cid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'),
+			`data:${attachment.mimeType};base64,${base64}`
+		);
+	}
+	return html;
+}
+
+function bufferToBase64(content: ArrayBuffer | Uint8Array | string): string {
+	if (typeof content === 'string') { return Buffer.from(content).toString('base64'); }
+	if (content instanceof ArrayBuffer) { return Buffer.from(new Uint8Array(content)).toString('base64'); }
+	return Buffer.from(content).toString('base64');
+}
+
+function toUint8Array(content: ArrayBuffer | Uint8Array | string): Uint8Array {
+	if (content instanceof Uint8Array) { return content; }
+	if (typeof content === 'string') { return new TextEncoder().encode(content); }
+	return new Uint8Array(content);
 }

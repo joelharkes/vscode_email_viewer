@@ -20,7 +20,7 @@
 	/**
 	 * Render the document in the webview.
 	 */
-	function updateContent(/** @type {import("mailparser").ParsedMail} */ mail) {
+	function updateContent(/** @type {import("postal-mime").Email & { textAsHtml?: string }} */ mail) {
 		const subjectELement = document.getElementById('mail-subject');
 		if(subjectELement){
 			subjectELement.innerText = mail.subject || '';
@@ -45,19 +45,16 @@
 						});
 					};
 					a.href = '#';
-					// a.href = `data:${attachment.contentType};base64,${attachment.content.toString('base64')}`;
-					// a.download = attachment.filename;
-					a.innerText = attachment.filename || 'unkown.txt';
+					a.innerText = attachment.filename || 'unknown.txt';
 				}
 			}
 		}
 
 		const textMap = {
-			'mail-from': mailsToText(mail.from),
-			'mail-to': mailsToText(mail.to),
-			'mail-cc': mailsToText(mail.cc),
-			'mail-bcc': mailsToText(mail.bcc),
-			
+			'mail-from': mail.from ? formatAddress(mail.from) : '',
+			'mail-to': formatAddresses(mail.to),
+			'mail-cc': formatAddresses(mail.cc),
+			'mail-bcc': formatAddresses(mail.bcc),
 		};
 		for(const id in textMap){
 			const element = document.getElementById(id);
@@ -80,18 +77,37 @@
 
 	}
 
-	function mailsToText(/** @type {import("mailparser").AddressObject | import("mailparser").AddressObject[] | undefined} */ emails){
-		if(Array.isArray(emails)){
-			return emails.map(mailToText).join(', ');
+	/**
+	 * Format a single postal-mime Address (Mailbox or group).
+	 * @param {import("postal-mime").Address} address
+	 * @returns {string}
+	 */
+	function formatAddress(address) {
+		if ('group' in address && address.group) {
+			return `${address.name}: ${address.group.map(formatMailbox).join(', ')};`;
 		}
-		if(!emails){
-			return '';
-		}
-		return mailToText(emails);
+		return formatMailbox(/** @type {import("postal-mime").Mailbox} */ (address));
 	}
 
-	function mailToText(/** @type {import("mailparser").AddressObject} */ address){
-		return address.text;
+	/**
+	 * @param {import("postal-mime").Mailbox} mailbox
+	 * @returns {string}
+	 */
+	function formatMailbox(mailbox) {
+		if (mailbox.name && mailbox.address) {
+			return `${mailbox.name} <${mailbox.address}>`;
+		}
+		return mailbox.address || mailbox.name || '';
+	}
+
+	/**
+	 * Format an array of addresses into a comma-separated string.
+	 * @param {import("postal-mime").Address[] | undefined} addresses
+	 * @returns {string}
+	 */
+	function formatAddresses(addresses) {
+		if (!addresses || addresses.length === 0) { return ''; }
+		return addresses.map(formatAddress).join(', ');
 	}
 
 	// Handle messages sent from the extension to the webview
