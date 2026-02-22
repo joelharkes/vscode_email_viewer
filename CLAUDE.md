@@ -9,7 +9,7 @@ VSCode custom editor for `.eml` files using `postal-mime` for parsing.
 - `src/util.ts` — `getNonce()` for CSP
 - `media/editor.js` — Webview JS: renders email data, handles UI interactions
 - `media/editor.css` — Webview styles using VSCode theme variables
-- `data/` — Sample `.eml` files for testing
+- `examples/` — Sample `.eml` files for testing
 - `SPEC.md` — Functional specification
 
 ## Build & Dev
