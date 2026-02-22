@@ -280,7 +280,6 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 						);
 						const edit = new vscode.WorkspaceEdit();
 						edit.replace(document.uri, editRange, encoded);
-						selfEditVersions.add(document.version + 1);
 						await vscode.workspace.applyEdit(edit);
 					});
 					return;
