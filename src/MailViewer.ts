@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
+import { createHash } from 'crypto';
 import { getNonce } from './util';
+import { findHtmlBodyRange, decodeMimeContent, encodeMimeContent } from './mime-utils';
 
 async function parseEmail(raw: string) {
 	const PostalMime = (await import('postal-mime')).default;
@@ -106,6 +108,8 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 
 		let mail = await parseEmail(document.getText());
 		const selfEditVersions = new Set<number>();
+		let tempFileUri: vscode.Uri | undefined;
+		let tempFileWatcher: vscode.Disposable | undefined;
 
 		function updateWebview() {
 			webviewPanel.webview.postMessage({
@@ -132,6 +136,10 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 		// Make sure we get rid of the listener when our editor is closed.
 		webviewPanel.onDidDispose(() => {
 			changeDocumentSubscription.dispose();
+			tempFileWatcher?.dispose();
+			if (tempFileUri) {
+				vscode.workspace.fs.delete(tempFileUri).then(undefined, () => {/* ignore */});
+			}
 		});
 
 		// Receive message from the webview.
@@ -204,6 +212,77 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 					// Re-parse and update webview to show the new header
 					mail = await parseEmail(document.getText());
 					updateWebview();
+					return;
+				}
+
+				case 'editHtmlBody': {
+					const { newHtml } = e as { newHtml: string };
+					const rawText = document.getText();
+					const bodyRange = findHtmlBodyRange(rawText);
+					if (!bodyRange) { return; }
+
+					// Reverse CID inlining so data: URIs become cid: refs again
+					const restoredHtml = uninlineCidImages(newHtml, mail);
+					const encoded = encodeMimeContent(restoredHtml, bodyRange.encoding);
+					const editRange = new vscode.Range(
+						document.positionAt(bodyRange.contentStart),
+						document.positionAt(bodyRange.contentEnd),
+					);
+					const edit = new vscode.WorkspaceEdit();
+					edit.replace(document.uri, editRange, encoded);
+					selfEditVersions.add(document.version + 1);
+					await vscode.workspace.applyEdit(edit);
+					return;
+				}
+
+				case 'openHtmlSource': {
+					const rawText = document.getText();
+					const bodyRange = findHtmlBodyRange(rawText);
+					if (!bodyRange) {
+						vscode.window.showWarningMessage('No HTML body found in this email.');
+						return;
+					}
+
+					const rawContent = rawText.substring(bodyRange.contentStart, bodyRange.contentEnd);
+					const decodedHtml = decodeMimeContent(rawContent, bodyRange.encoding);
+
+					// Create temp file in extension storage
+					const tempDir = vscode.Uri.joinPath(this.context.globalStorageUri, 'temp');
+					await vscode.workspace.fs.createDirectory(tempDir);
+					const hash = createHash('md5').update(document.uri.toString()).digest('hex').substring(0, 8);
+					tempFileUri = vscode.Uri.joinPath(tempDir, `email-body-${hash}.html`);
+
+					// If already open, just focus it
+					const existing = vscode.workspace.textDocuments.find(
+						d => d.uri.toString() === tempFileUri!.toString()
+					);
+					if (existing) {
+						await vscode.window.showTextDocument(existing, vscode.ViewColumn.Beside);
+						return;
+					}
+
+					await vscode.workspace.fs.writeFile(tempFileUri, Buffer.from(decodedHtml, 'utf-8'));
+					const htmlDoc = await vscode.workspace.openTextDocument(tempFileUri);
+					await vscode.window.showTextDocument(htmlDoc, vscode.ViewColumn.Beside);
+
+					// Watch for saves on the temp file → sync back to .eml
+					tempFileWatcher?.dispose();
+					tempFileWatcher = vscode.workspace.onDidSaveTextDocument(async (savedDoc) => {
+						if (savedDoc.uri.toString() !== tempFileUri?.toString()) { return; }
+						const currentRaw = document.getText();
+						const currentRange = findHtmlBodyRange(currentRaw);
+						if (!currentRange) { return; }
+
+						const encoded = encodeMimeContent(savedDoc.getText(), currentRange.encoding);
+						const editRange = new vscode.Range(
+							document.positionAt(currentRange.contentStart),
+							document.positionAt(currentRange.contentEnd),
+						);
+						const edit = new vscode.WorkspaceEdit();
+						edit.replace(document.uri, editRange, encoded);
+						selfEditVersions.add(document.version + 1);
+						await vscode.workspace.applyEdit(edit);
+					});
 					return;
 				}
 			}
@@ -294,6 +373,17 @@ function inlineCidImages(mail: Email): string {
 			new RegExp(`cid:${cid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'),
 			`data:${attachment.mimeType};base64,${base64}`
 		);
+	}
+	return html;
+}
+
+function uninlineCidImages(html: string, mail: Email): string {
+	for (const attachment of mail.attachments) {
+		if (!attachment.contentId) { continue; }
+		const cid = attachment.contentId.replace(/^<|>$/g, '');
+		const base64 = bufferToBase64(attachment.content);
+		const dataUri = `data:${attachment.mimeType};base64,${base64}`;
+		html = html.replaceAll(dataUri, `cid:${cid}`);
 	}
 	return html;
 }

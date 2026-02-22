@@ -168,18 +168,70 @@
 			}
 		}
 
-		// Render HTML body in a sandboxed iframe to prevent XSS
+		// Render HTML body in a sandboxed iframe with contentEditable
 		const mailHtmlElement = document.getElementById('mail-html');
 		if (mailHtmlElement) {
 			mailHtmlElement.innerHTML = '';
 			if (mail.html) {
+				// Toolbar with hint and Edit HTML Source button
+				const toolbar = document.createElement('div');
+				toolbar.className = 'html-body-toolbar';
+				const hint = document.createElement('span');
+				hint.className = 'html-body-hint';
+				hint.textContent = 'Inline editing may alter formatting. Use Edit HTML Source for precise control.';
+				toolbar.appendChild(hint);
+				const editSourceBtn = document.createElement('button');
+				editSourceBtn.className = 'edit-source-btn';
+				editSourceBtn.textContent = 'Edit HTML Source';
+				editSourceBtn.addEventListener('click', () => {
+					vscode.postMessage({ type: 'openHtmlSource' });
+				});
+				toolbar.appendChild(editSourceBtn);
+				mailHtmlElement.appendChild(toolbar);
+
 				const iframe = document.createElement('iframe');
-				iframe.sandbox = '';
+				iframe.sandbox = 'allow-same-origin';
 				iframe.srcdoc = mail.html;
 				iframe.style.width = '100%';
 				iframe.style.border = 'none';
 				iframe.style.minHeight = '200px';
 				mailHtmlElement.appendChild(iframe);
+
+				// After load, enable contentEditable and wire up change detection
+				iframe.addEventListener('load', () => {
+					const doc = iframe.contentDocument;
+					if (!doc || !doc.body) { return; }
+
+					doc.body.contentEditable = 'true';
+					doc.body.style.outline = 'none';
+
+					// Auto-resize iframe to fit content
+					const resize = () => {
+						iframe.style.height = doc.body.scrollHeight + 'px';
+					};
+					resize();
+					const observer = new ResizeObserver(resize);
+					observer.observe(doc.body);
+
+					// Debounced input → send changes back to extension
+					/** @type {ReturnType<typeof setTimeout> | undefined} */
+					let debounceTimer;
+					doc.body.addEventListener('input', () => {
+						clearTimeout(debounceTimer);
+						debounceTimer = setTimeout(() => {
+							// Temporarily remove attributes we added so they don't leak into the saved HTML
+							doc.body.removeAttribute('contenteditable');
+							doc.body.removeAttribute('style');
+							const html = doc.documentElement.outerHTML;
+							doc.body.contentEditable = 'true';
+							doc.body.style.outline = 'none';
+							vscode.postMessage({
+								type: 'editHtmlBody',
+								newHtml: html,
+							});
+						}, 500);
+					});
+				});
 			}
 		}
 
