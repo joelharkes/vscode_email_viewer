@@ -124,12 +124,6 @@
 	 * Render the document in the webview.
 	 */
 	function updateContent(/** @type {import("postal-mime").Email & { textAsHtml?: string }} */ mail) {
-		// Subject as page title
-		const subjectElement = document.getElementById('mail-subject');
-		if (subjectElement) {
-			subjectElement.textContent = mail.subject || '(no subject)';
-		}
-
 		// Build editable header table from all headers
 		const headerTableBody = document.getElementById('header-table-body');
 		if (headerTableBody) {
