@@ -31,7 +31,7 @@
 			if(mail.attachments && mail.attachments.length > 0){
 				const ul = document.createElement('ul');
 				attachmentElement.appendChild(ul);
-				for(const attachmentIndex in mail.attachments){
+				for(let attachmentIndex = 0; attachmentIndex < mail.attachments.length; attachmentIndex++){
 					const attachment = mail.attachments[attachmentIndex];
 					const li = document.createElement('li');
 					ul.appendChild(li);
