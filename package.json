@@ -23,12 +23,6 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "emlviewer.helloWorld",
-        "title": "Hello World"
-      }
-    ],
     "customEditors": [
       {
         "viewType": "emlviewer.eml",
