@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { createHash } from 'crypto';
 import { getNonce } from './util';
-import { findHtmlBodyRange, decodeMimeContent, encodeMimeContent } from './mime-utils';
+import { findHtmlBodyRange, findTextBodyRange, insertTextBodyPart, decodeMimeContent, encodeMimeContent } from './mime-utils';
 
 async function parseEmail(raw: string) {
 	const PostalMime = (await import('postal-mime')).default;
@@ -235,6 +235,38 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 					return;
 				}
 
+				case 'editTextBody': {
+					const { newText } = e as { newText: string };
+					const rawText = document.getText();
+					const bodyRange = findTextBodyRange(rawText);
+					if (bodyRange) {
+						const encoded = encodeMimeContent(newText, bodyRange.encoding);
+						const editRange = new vscode.Range(
+							document.positionAt(bodyRange.contentStart),
+							document.positionAt(bodyRange.contentEnd),
+						);
+						const edit = new vscode.WorkspaceEdit();
+						edit.replace(document.uri, editRange, encoded);
+						selfEditVersions.add(document.version + 1);
+						await vscode.workspace.applyEdit(edit);
+					} else {
+						// No text body exists — insert a new text/plain MIME part
+						const insertion = insertTextBodyPart(rawText, newText);
+						if (!insertion) { return; }
+						const editRange = new vscode.Range(
+							document.positionAt(insertion.offset),
+							document.positionAt(insertion.deleteEnd),
+						);
+						const edit = new vscode.WorkspaceEdit();
+						edit.replace(document.uri, editRange, insertion.replacement);
+						selfEditVersions.add(document.version + 1);
+						await vscode.workspace.applyEdit(edit);
+						mail = await parseEmail(document.getText());
+						updateWebview();
+					}
+					return;
+				}
+
 				case 'openHtmlSource': {
 					const rawText = document.getText();
 					const bodyRange = findHtmlBodyRange(rawText);
@@ -324,11 +356,11 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 				<table class="header-table"><tbody id="header-table-body"></tbody></table>
 				<button class="add-header-btn" id="add-header-btn">+ Add Header</button>
 				<div id="mail-attachment"></div>
-				<h2>HTML body</h2>
-				<div id="mail-html">
-				</div>
 				<h2>Text body</h2>
 				<div id="mail-text">
+				</div>
+				<h2>HTML body</h2>
+				<div id="mail-html">
 				</div>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>

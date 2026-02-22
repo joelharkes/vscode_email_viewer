@@ -235,10 +235,45 @@
 			}
 		}
 
-		// Text body is safe (pre-escaped by textToHtml on the extension side)
+		// Text body — editable textarea, always visible
 		const mailTextElement = document.getElementById('mail-text');
 		if (mailTextElement) {
-			mailTextElement.innerHTML = mail.textAsHtml || '';
+			const existing = mailTextElement.querySelector('textarea');
+			// Skip update if textarea is focused (user is editing)
+			if (existing && existing === document.activeElement) {
+				// don't clobber user's in-progress edits
+			} else {
+				const textarea = existing || document.createElement('textarea');
+				if (!existing) {
+					textarea.placeholder = 'No text body. Type here to add one.';
+					textarea.spellcheck = false;
+					mailTextElement.appendChild(textarea);
+
+					// Auto-resize
+					const resize = () => {
+						textarea.style.height = 'auto';
+						textarea.style.height = textarea.scrollHeight + 'px';
+					};
+
+					// Debounced input → send changes back to extension
+					/** @type {ReturnType<typeof setTimeout> | undefined} */
+					let textDebounceTimer;
+					textarea.addEventListener('input', () => {
+						resize();
+						clearTimeout(textDebounceTimer);
+						textDebounceTimer = setTimeout(() => {
+							vscode.postMessage({
+								type: 'editTextBody',
+								newText: textarea.value,
+							});
+						}, 500);
+					});
+				}
+				textarea.value = mail.text || '';
+				// Trigger resize after setting value
+				textarea.style.height = 'auto';
+				textarea.style.height = textarea.scrollHeight + 'px';
+			}
 		}
 	}
 

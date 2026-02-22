@@ -140,6 +140,33 @@
 	font-family: var(--vscode-font-family);
 }
 
+/* === Text Body Textarea === */
+#mail-text textarea {
+	width: 100%;
+	box-sizing: border-box;
+	min-height: 60px;
+	padding: 8px;
+	border: 1px solid var(--vscode-input-border);
+	border-radius: 2px;
+	background-color: var(--vscode-input-background);
+	color: var(--vscode-input-foreground);
+	font-family: var(--vscode-editor-font-family, monospace);
+	font-size: var(--vscode-editor-font-size, 13px);
+	line-height: 1.5;
+	resize: none;
+	overflow: hidden;
+}
+
+#mail-text textarea:focus {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: -1px;
+}
+
+#mail-text textarea::placeholder {
+	color: var(--vscode-input-placeholderForeground);
+	font-style: italic;
+}
+
 /* === HTML Body Toolbar === */
 .html-body-toolbar {
 	display: flex;
