@@ -2,7 +2,7 @@
   "name": "emlviewer",
   "displayName": "Email viewer (.eml files)",
   "description": "A viewer for EML mail files",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "publisher": "joel-harkes",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -11,10 +11,14 @@
     "vscode": "^1.86.0"
   },
   "categories": [
-    "Programming Languages", "Other"
+    "Programming Languages",
+    "Other"
   ],
   "keywords": [
-    "eml", "email", "viewer", ".eml"
+    "eml",
+    "email",
+    "viewer",
+    ".eml"
   ],
   "repository": {
     "type": "git",

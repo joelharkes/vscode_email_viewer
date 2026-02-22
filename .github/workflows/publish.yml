@@ -1,4 +1,4 @@
-name: Publisch Extension
+name: Publish Extension
 on:
   release:
     types:
@@ -15,7 +15,7 @@ jobs:
           node-version: 20
       - run: npm ci
       - name: Set package version
-        run: "sed -i 's/version\": \"0.0.1/version\": \"${{ github.ref_name }}/' package.json"
+        run: npm version "${{ github.ref_name }}" --no-git-tag-version --allow-same-version
       - name: Package Extension
         id: packageExtension
         uses: HaaLeo/publish-vscode-extension@v1
@@ -28,11 +28,6 @@ jobs:
           pat: ${{ secrets.VS_MARKETPLACE_TOKEN }}
           registryUrl: https://marketplace.visualstudio.com
           path: ${{ steps.packageExtension.outputs.vsixPath }}
-        # - name: Publish to Open VSX Registry
-        #   uses: HaaLeo/publish-vscode-extension@v1
-        #   with:
-        #     pat: ${{ secrets.OPEN_VSX_TOKEN }}
-        #     path: ${{ steps.packageExtension.outputs.vsixPath }}
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
