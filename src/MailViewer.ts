@@ -89,6 +89,8 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 		// Local path to script and css for the webview
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(
 			this.context.extensionUri, 'media', 'editor.js'));
+		const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(
+			this.context.extensionUri, 'media', 'editor.css'));
 
 		// Use a nonce to whitelist which scripts can be run
 		const nonce = getNonce();
@@ -108,13 +110,15 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 				<title>Email Viewer</title>
+				<link rel="stylesheet" href="${styleUri}">
 			</head>
 			<body>
-				<h1>Subject: <span id="mail-subject"></span></h1>
-				from: <span id="mail-from"></span><br/>
-				to: <span id="mail-to"></span><br/>
-				cc: <span id="mail-cc"></span><br/>
-				bcc: <span id="mail-bcc"></span><br/>
+				<h1 id="mail-subject"></h1>
+				<table class="header-table"><tbody id="header-table-body"></tbody></table>
+				<button class="raw-headers-toggle" id="raw-headers-toggle">Show all headers</button>
+				<div class="raw-headers-content" id="raw-headers-content">
+					<table class="raw-headers-table"><tbody id="raw-headers-table-body"></tbody></table>
+				</div>
 				attachment:
 				<div id="mail-attachment">
 				</div>

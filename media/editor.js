@@ -18,13 +18,96 @@
 	errorContainer.style.display = 'none'
 
 	/**
+	 * Create a table row with a label and text value, using textContent for safety.
+	 * @param {string} label
+	 * @param {string} value
+	 * @returns {HTMLTableRowElement}
+	 */
+	function createHeaderRow(label, value) {
+		const tr = document.createElement('tr');
+		const th = document.createElement('th');
+		th.textContent = label;
+		const td = document.createElement('td');
+		td.textContent = value;
+		tr.appendChild(th);
+		tr.appendChild(td);
+		return tr;
+	}
+
+	/**
+	 * Format an ISO/RFC 2822 date string into a human-readable locale format.
+	 * @param {string} dateStr
+	 * @returns {string}
+	 */
+	function formatDate(dateStr) {
+		try {
+			const date = new Date(dateStr);
+			if (isNaN(date.getTime())) {
+				return dateStr;
+			}
+			return date.toLocaleString(undefined, {
+				weekday: 'short',
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit',
+				timeZoneName: 'short',
+			});
+		} catch {
+			return dateStr;
+		}
+	}
+
+	/**
 	 * Render the document in the webview.
 	 */
 	function updateContent(/** @type {import("postal-mime").Email & { textAsHtml?: string }} */ mail) {
-		const subjectELement = document.getElementById('mail-subject');
-		if(subjectELement){
-			subjectELement.innerText = mail.subject || '';
+		// Subject as page title
+		const subjectElement = document.getElementById('mail-subject');
+		if (subjectElement) {
+			subjectElement.textContent = mail.subject || '(no subject)';
 		}
+
+		// Build standard header rows, skipping empty values
+		const headerTableBody = document.getElementById('header-table-body');
+		if (headerTableBody) {
+			headerTableBody.innerHTML = '';
+			/** @type {Array<{label: string, value: string}>} */
+			const standardHeaders = [
+				{ label: 'From',     value: mail.from ? formatAddress(mail.from) : '' },
+				{ label: 'To',       value: formatAddresses(mail.to) },
+				{ label: 'Date',     value: mail.date ? formatDate(mail.date) : '' },
+				{ label: 'CC',       value: formatAddresses(mail.cc) },
+				{ label: 'BCC',      value: formatAddresses(mail.bcc) },
+				{ label: 'Reply-To', value: formatAddresses(mail.replyTo) },
+				{ label: 'Sender',   value: mail.sender ? formatAddress(mail.sender) : '' },
+			];
+			for (const header of standardHeaders) {
+				if (header.value) {
+					headerTableBody.appendChild(createHeaderRow(header.label, header.value));
+				}
+			}
+		}
+
+		// Build raw headers table
+		const rawHeadersBody = document.getElementById('raw-headers-table-body');
+		if (rawHeadersBody) {
+			rawHeadersBody.innerHTML = '';
+			if (mail.headers && mail.headers.length > 0) {
+				for (const header of mail.headers) {
+					rawHeadersBody.appendChild(createHeaderRow(header.key, header.value));
+				}
+			}
+		}
+
+		// Show/hide the toggle button based on whether there are raw headers
+		const toggleButton = document.getElementById('raw-headers-toggle');
+		if (toggleButton) {
+			toggleButton.style.display = (mail.headers && mail.headers.length > 0) ? '' : 'none';
+		}
+
 		const attachmentElement = document.getElementById('mail-attachment');
 		if(attachmentElement){
 			attachmentElement.innerHTML = '';
@@ -47,19 +130,6 @@
 					a.href = '#';
 					a.innerText = attachment.filename || 'unknown.txt';
 				}
-			}
-		}
-
-		const textMap = {
-			'mail-from': mail.from ? formatAddress(mail.from) : '',
-			'mail-to': formatAddresses(mail.to),
-			'mail-cc': formatAddresses(mail.cc),
-			'mail-bcc': formatAddresses(mail.bcc),
-		};
-		for(const id in textMap){
-			const element = document.getElementById(id);
-			if(element){
-				element.textContent = textMap[id];
 			}
 		}
 
@@ -117,6 +187,17 @@
 	function formatAddresses(addresses) {
 		if (!addresses || addresses.length === 0) { return ''; }
 		return addresses.map(formatAddress).join(', ');
+	}
+
+	// Wire up the raw headers toggle
+	const rawHeadersToggle = document.getElementById('raw-headers-toggle');
+	const rawHeadersContent = document.getElementById('raw-headers-content');
+	if (rawHeadersToggle && rawHeadersContent) {
+		rawHeadersToggle.addEventListener('click', () => {
+			const isExpanded = rawHeadersToggle.classList.toggle('expanded');
+			rawHeadersContent.classList.toggle('visible', isExpanded);
+			rawHeadersToggle.textContent = isExpanded ? 'Hide all headers' : 'Show all headers';
+		});
 	}
 
 	// Handle messages sent from the extension to the webview
