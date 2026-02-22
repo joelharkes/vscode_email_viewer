@@ -106,7 +106,7 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-				<title>Cat Scratch</title>
+				<title>Email Viewer</title>
 			</head>
 			<body>
 				<h1>Subject: <span id="mail-subject"></span></h1>
