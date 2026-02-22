@@ -53,47 +53,24 @@ The VSCode Email Viewer is a Visual Studio Code extension that provides a rich e
 
 ---
 
-## 3. View Modes
+## 3. View Mode
 
-The extension provides two view modes and a combined side-by-side mode.
+The extension provides a single structured view as the editing interface.
 
-### 3.1 Structured View (Default)
+### 3.1 Structured View
 
-The structured view is the primary editing interface. It opens by default when a user opens an `.eml` file. It consists of three sections:
+The structured view opens by default when a user opens an `.eml` file. It consists of four sections:
 
 #### 3.1.1 Email Headers Section
 
-A key-value table displaying all email headers, editable via form inputs.
+A single key-value table displaying all email headers in their native order.
 
-**Required headers with dedicated UI:**
+- Each row shows the header key and value, both inline-editable via `contentEditable`
+- Rows have a delete button (visible on hover) to remove individual headers
+- An "Add Header" button below the table inserts a new header row
+- Header keys preserve their original casing when the value is edited
 
-| Header | UI Element |
-|--------|-----------|
-| Subject | Text input |
-| From | Email address input (name + address) |
-| To | Multi-value email address input |
-| CC | Multi-value email address input |
-| BCC | Multi-value email address input |
-| Date | Date/time picker |
-| Reply-To | Email address input |
-
-**All other headers:**
-
-- Displayed in a collapsible "All Headers" section as a key-value table
-- Each row is editable (both key and value)
-- Users can add new headers and remove existing ones
-
-#### 3.1.2 Email Body Section
-
-An embedded code editor panel for the email body content.
-
-- Displays the HTML body of the email in an embedded editor with syntax highlighting
-- If the email has only a plain text body, that is displayed instead
-- If the email has both HTML and plain text parts, a tab or toggle switches between them
-- The embedded editor should provide HTML-appropriate features (syntax highlighting at minimum)
-- Changes in the body editor are reflected in the preview pane when in side-by-side mode
-
-#### 3.1.3 Attachments Section
+#### 3.1.2 Attachments Section
 
 A list of all email attachments with management capabilities.
 
@@ -114,45 +91,27 @@ A list of all email attachments with management capabilities.
 
 **Out of scope:** Editing the contents of attachments, inline preview of attachment contents.
 
-### 3.2 Preview Mode
+#### 3.1.3 Text Body Section
 
-A read-only, sandboxed rendering of the email as it would appear in an email client.
+An editable textarea for the plain text body part.
 
-#### 3.2.1 Default Preview
+- Always visible, even if empty (shows placeholder text)
+- Auto-resizes to fit content
+- Changes are debounced and synced back to the `.eml` file
+- If no text body part exists, typing creates one
 
-- Renders the HTML body of the email in a sandboxed iframe
+#### 3.1.4 HTML Body Section
+
+A sandboxed iframe rendering the HTML body as a preview, with inline editing support.
+
+- Renders the HTML body in a sandboxed iframe with `contentEditable` enabled
 - Inline images (CID references) are resolved and displayed
-- External images are loaded (with a toggle to block external content for privacy)
-- If the email is plain text only, it is rendered with preserved whitespace and clickable links
-
-#### 3.2.2 Render Mode Options
-
-A dropdown or toggle in the preview toolbar allows selecting the rendering context:
-
-| Mode | Description |
-|------|-------------|
-| **Default** | Renders the raw HTML as-is in the webview |
-| **Gmail** | Applies Gmail's CSS resets, clipping behavior, and known rendering quirks to simulate Gmail's rendering |
-| **Outlook** | Applies Outlook's (Word-based) rendering constraints to simulate how Outlook would display the email |
-
-> **Note:** Gmail and Outlook simulation modes are best-effort approximations. They apply known CSS overrides, element restrictions, and rendering quirks of each client but cannot perfectly replicate proprietary rendering engines.
-
-#### 3.2.3 Preview Constraints
-
-- The preview pane is **read-only** — no inline editing
-- All content is rendered inside a **sandboxed iframe** for security
-- Scripts within the email HTML are **not executed**
-
-### 3.3 Side-by-Side Mode
-
-Mirrors VSCode's Markdown preview behavior:
-
-- **Default:** Only the Structured View is shown
-- **Preview button** in the editor toolbar (top-right icon area) opens the Preview pane to the side
-- The layout becomes: Structured View (left) | Preview (right)
-- Changes made in the Structured View are reflected in the Preview in real-time (or on a short debounce)
-- Closing the preview returns to the Structured View only
-- The preview button toggles the side-by-side mode on/off
+- The iframe auto-resizes to match content height (no scrollbar)
+- A toolbar above the iframe provides:
+  - A hint that inline editing may alter formatting
+  - An **"Edit HTML Source"** button that opens the raw HTML in a separate editor tab for precise control
+- Inline edits are debounced and synced back to the `.eml` file
+- Saving the separate HTML source file syncs changes back to the `.eml` file
 
 ---
 
