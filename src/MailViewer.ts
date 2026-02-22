@@ -33,6 +33,7 @@ export class MailViewer implements vscode.CustomTextEditorProvider {
 		// Setup initial content for the webview
 		webviewPanel.webview.options = {
 			enableScripts: true,
+			localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'media')],
 		};
 		webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
