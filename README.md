@@ -1,50 +1,66 @@
-# Email viewer
+# Email Viewer for VS Code
 
-Email viewer is a VS Code extension that allows you to feel email content in VS Code, from html, raw body to exporting attachements.
+View and edit `.eml` email files directly in VS Code — headers, HTML body, text body, and attachments — all in a single structured editor.
+
+## What are `.eml` files?
+
+`.eml` is the standard format for email messages ([RFC 5322](https://datatracker.ietf.org/doc/html/rfc5322)). Every email client can export and import them. They contain the full email: headers, body (plain text and/or HTML), inline images, and file attachments — all encoded in a single text file using MIME.
+
+Common uses for `.eml` files:
+
+- **Email templates** — design and version-control email templates alongside your code
+- **Testing** — inspect and modify test fixture emails for email-processing pipelines
+- **Archiving** — browse saved email correspondence without an email client
+- **Debugging** — examine raw email structure, headers, and encoding issues
 
 ## Features
 
-Features include:
-* Seeing Subject, senders etc
+- **Header editing** — view and edit all email headers inline, add new ones, or delete existing ones
+- **HTML body preview** — rendered HTML preview with inline editing support; click "Edit HTML Source" for full control in a separate editor tab
+- **Text body editing** — editable textarea for the plain text part, auto-creates one if missing
+- **Attachments** — card-based layout showing filename, size, and MIME type; click to download
+- **Theme support** — adapts to your VS Code theme (light, dark, high contrast)
+- **Standards compliant** — preserves MIME structure, encodings, and boundaries on save
 
-You can open any .eml file with this new editor:
+![Email Viewer screenshot](images/screenshot_vscode.png)
 
-![feature Open File](images/vs_code_open_with.png)
+## Getting Started
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+1. Install the extension from the VS Code Marketplace
+2. Open any `.eml` file — the Email Viewer opens automatically
+3. Use **"Open With..."** to switch between the Email Viewer and the raw text editor
 
-## Extension Settings
-
-This extension currently does't add any VS Code settings.
-
-<!-- Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something. -->
+![Open With menu](images/vs_code_open_with.png)
 
 ## Known Issues
 
-This extension UI leaves some thing to be desired but otherwise there are no known issues.
+No major known issues. If you find a bug, please [open an issue](https://github.com/joelharkes/vscode_email_viewer/issues).
 
-## Release Notes
+## Contributing
 
+Contributions are welcome! Here's how to get started:
 
+```sh
+git clone https://github.com/joelharkes/vscode_email_viewer.git
+cd vscode_email_viewer
+npm install
+npm run compile
+```
 
-### 0.0.1
+Press **F5** in VS Code to launch the Extension Development Host for testing.
 
-Initial release of the Email viewer.
+```sh
+npm run compile   # Build TypeScript
+npm run lint      # Run ESLint
+npm run test      # Run test suite
+```
 
-* See HTML and Text bodies
-* See Subject and from and to mails.
-* See attachements and export them.
+### Guidelines
 
-### Future
+- Use [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`)
+- TypeScript strict mode
+- Test with sample `.eml` files in the `data/` directory
 
-* Switch between view modes with Editor action: https://code.visualstudio.com/api/ux-guidelines/editor-actions
-* Improve UI especially for attachements
-* Make all information visible (all email headers)
+## License
 
+[MIT](LICENSE)
