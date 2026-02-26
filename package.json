@@ -1,5 +1,5 @@
 {
-  "name": "emlviewer",
+  "name": "eml-email-viewer",
   "displayName": "EML Email viewer",
   "description": "View and inspect .eml email files with HTML rendering, attachments, and headers",
   "version": "1.0.2",
