@@ -1,5 +1,7 @@
 # Email Viewer for VS Code
 
+> **Note:** This extension replaces the previously published `joel-harkes.emlviewer`. If you had the old version installed, please uninstall it and install this one instead.
+
 View and edit `.eml` email files directly in VS Code — headers, HTML body, text body, and attachments — all in a single structured editor.
 
 ![Email Viewer screenshot](images/screenshot_vscode.png)
